@@ -27,8 +27,8 @@ namespace aasdk
 namespace messenger
 {
 
-MessageOutStream::MessageOutStream(boost::asio::io_service& ioService, transport::ITransport::Pointer transport, ICryptor::Pointer cryptor)
-    : strand_(ioService)
+MessageOutStream::MessageOutStream(boost::asio::io_context& ioContext, transport::ITransport::Pointer transport, ICryptor::Pointer cryptor)
+    : strand_(ioContext)
     , transport_(std::move(transport))
     , cryptor_(std::move(cryptor))
     , offset_(0)
@@ -39,39 +39,40 @@ MessageOutStream::MessageOutStream(boost::asio::io_service& ioService, transport
 
 void MessageOutStream::stream(Message::Pointer message, SendPromise::Pointer promise)
 {
-    strand_.dispatch([this, self = this->shared_from_this(), message = std::move(message), promise = std::move(promise)]() mutable {
-        if(promise_ != nullptr)
+    auto self = shared_from_this();
+    boost::asio::dispatch(strand_.get_executor(),[self, message = std::move(message), promise = std::move(promise)]() mutable {
+        if(self.promise_ != nullptr)
         {
             promise->reject(error::Error(error::ErrorCode::OPERATION_IN_PROGRESS));
             return;
         }
 
-        message_ = std::move(message);
-        promise_ = std::move(promise);
+        self.message_ = std::move(message);
+        self.promise_ = std::move(promise);
 
-        if(message_->getPayload().size() >= cMaxFramePayloadSize)
+        if(self.message_->getPayload().size() >= cMaxFramePayloadSize)
         {
-            offset_ = 0;
-            remainingSize_ = message_->getPayload().size();
-            this->streamSplittedMessage();
+            self.offset_ = 0;
+            self.remainingSize_ = self.message_->getPayload().size();
+            self->streamSplittedMessage();
         }
         else
         {
             try
             {
-                auto data(this->compoundFrame(FrameType::BULK, common::DataConstBuffer(message_->getPayload())));
+                auto data(self->compoundFrame(FrameType::BULK, common::DataConstBuffer(self.message_->getPayload())));
 
-                auto transportPromise = transport::ITransport::SendPromise::defer(strand_);
-                io::PromiseLink<>::forward(*transportPromise, std::move(promise_));
-                transport_->send(std::move(data), std::move(transportPromise));
+                auto transportPromise = transport::ITransport::SendPromise::defer(self.strand_);
+                io::PromiseLink<>::forward(*transportPromise, std::move(self.promise_));
+                self.transport_->send(std::move(data), std::move(transportPromise));
             }
             catch(const error::Error& e)
             {
-                promise_->reject(e);
-                promise_.reset();
+                self.promise_->reject(e);
+                self.promise_.reset();
             }
 
-            this->reset();
+            self->reset();
         }
     });
 }

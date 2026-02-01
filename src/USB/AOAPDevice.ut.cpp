@@ -32,7 +32,7 @@ namespace ut
 BOOST_AUTO_TEST_CASE(AOAPDevice_OutEndpointFirst)
 {
     USBWrapperMock usbWrapperMock;
-    boost::asio::io_service ioService;
+    boost::asio::io_context ioContext;
     USBWrapperMock::DummyDeviceHandle dummyDeviceHandle;
     DeviceHandle deviceHandle(reinterpret_cast<libusb_device_handle*>(&dummyDeviceHandle), [](auto*) {});
 
@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(AOAPDevice_OutEndpointFirst)
     interfaceDescriptor.endpoint = endpointDescriptor;
 
     EXPECT_CALL(usbWrapperMock, releaseInterface(deviceHandle, interfaceDescriptor.bInterfaceNumber));
-    AOAPDevice aoapDevice(usbWrapperMock, ioService, deviceHandle, &interfaceDescriptor);
+    AOAPDevice aoapDevice(usbWrapperMock, ioContext, deviceHandle, &interfaceDescriptor);
     BOOST_TEST(endpointDescriptor[0].bEndpointAddress == aoapDevice.getOutEndpoint().getAddress());
     BOOST_TEST(endpointDescriptor[1].bEndpointAddress == aoapDevice.getInEndpoint().getAddress());
 }
@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(AOAPDevice_OutEndpointFirst)
 BOOST_AUTO_TEST_CASE(AOAPDevice_InEndpointFirst)
 {
     USBWrapperMock usbWrapperMock;
-    boost::asio::io_service ioService;
+    boost::asio::io_context ioContext;
     USBWrapperMock::DummyDeviceHandle dummyDeviceHandle;
     DeviceHandle deviceHandle(reinterpret_cast<libusb_device_handle*>(&dummyDeviceHandle), [](auto*) {});
 
@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(AOAPDevice_InEndpointFirst)
     interfaceDescriptor.endpoint = endpointDescriptor;
 
     EXPECT_CALL(usbWrapperMock, releaseInterface(deviceHandle, interfaceDescriptor.bInterfaceNumber));
-    AOAPDevice aoapDevice(usbWrapperMock, ioService, deviceHandle, &interfaceDescriptor);
+    AOAPDevice aoapDevice(usbWrapperMock, ioContext, deviceHandle, &interfaceDescriptor);
     BOOST_TEST(endpointDescriptor[0].bEndpointAddress == aoapDevice.getInEndpoint().getAddress());
     BOOST_TEST(endpointDescriptor[1].bEndpointAddress == aoapDevice.getOutEndpoint().getAddress());
 }

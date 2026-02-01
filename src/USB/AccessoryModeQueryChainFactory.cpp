@@ -27,10 +27,10 @@ namespace usb
 {
 
 AccessoryModeQueryChainFactory::AccessoryModeQueryChainFactory(IUSBWrapper& usbWrapper,
-                                                               boost::asio::io_service& ioService,
+                                                               boost::asio::io_context& ioContext,
                                                                IAccessoryModeQueryFactory& queryFactory)
     : usbWrapper_(usbWrapper)
-    , ioService_(ioService)
+    , ioContext_(ioContext)
     , queryFactory_(queryFactory)
 {
 
@@ -38,7 +38,7 @@ AccessoryModeQueryChainFactory::AccessoryModeQueryChainFactory(IUSBWrapper& usbW
 
 IAccessoryModeQueryChain::Pointer AccessoryModeQueryChainFactory::create()
 {
-    return std::make_shared<AccessoryModeQueryChain>(usbWrapper_, ioService_, queryFactory_);
+    return std::make_shared<AccessoryModeQueryChain>(usbWrapper_, ioContext_, queryFactory_);
 }
 
 }

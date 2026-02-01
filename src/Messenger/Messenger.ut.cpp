@@ -42,8 +42,8 @@ protected:
     MessengerUnitTest()
         : messageInStream_(&messageInStreamMock_, [](auto*) {})
         , messageOutStream_(&messageOutStreamMock_, [](auto*) {})
-        , receivePromise_(ReceivePromise::defer(ioService_))
-        , sendPromise_(SendPromise::defer(ioService_))
+        , receivePromise_(ReceivePromise::defer(ioContext_))
+        , sendPromise_(SendPromise::defer(ioContext_))
     {
         receivePromise_->then(std::bind(&ReceivePromiseHandlerMock::onResolve, &receivePromiseHandlerMock_, std::placeholders::_1),
                              std::bind(&ReceivePromiseHandlerMock::onReject, &receivePromiseHandlerMock_, std::placeholders::_1));
@@ -52,7 +52,7 @@ protected:
                           std::bind(&SendPromiseHandlerMock::onReject, &sendPromiseHandlerMock_, std::placeholders::_1));
     }
 
-    boost::asio::io_service ioService_;
+    boost::asio::io_context ioContext_;
     MessageInStreamMock messageInStreamMock_;
     IMessageInStream::Pointer messageInStream_;
     MessageOutStreamMock messageOutStreamMock_;
@@ -65,41 +65,41 @@ protected:
 
 BOOST_FIXTURE_TEST_CASE(Messenger_Receive, MessengerUnitTest)
 {
-    Messenger::Pointer themessenger(std::make_shared<Messenger>(ioService_, messageInStream_, messageOutStream_));
+    Messenger::Pointer themessenger(std::make_shared<Messenger>(ioContext_, messageInStream_, messageOutStream_));
     themessenger->enqueueReceive(ChannelId::MEDIA_AUDIO, std::move(receivePromise_));
 
     ReceivePromise::Pointer inStreamReceivePromise;
     EXPECT_CALL(messageInStreamMock_, startReceive(_)).WillOnce(SaveArg<0>(&inStreamReceivePromise));
 
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     Message::Pointer message(std::make_shared<Message>(ChannelId::MEDIA_AUDIO, EncryptionType::ENCRYPTED, MessageType::SPECIFIC));
     inStreamReceivePromise->resolve(message);
 
     EXPECT_CALL(receivePromiseHandlerMock_, onReject(_)).Times(0);
     EXPECT_CALL(receivePromiseHandlerMock_, onResolve(message));
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(Messenger_DirectReceive, MessengerUnitTest)
 {
-    Messenger::Pointer themessenger(std::make_shared<Messenger>(ioService_, messageInStream_, messageOutStream_));
+    Messenger::Pointer themessenger(std::make_shared<Messenger>(ioContext_, messageInStream_, messageOutStream_));
     themessenger->enqueueReceive(ChannelId::MEDIA_AUDIO, std::move(receivePromise_));
 
     ReceivePromise::Pointer inStreamReceivePromise;
     EXPECT_CALL(messageInStreamMock_, startReceive(_)).WillRepeatedly(SaveArg<0>(&inStreamReceivePromise));
 
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     Message::Pointer inputChannelMessage(std::make_shared<Message>(ChannelId::INPUT, EncryptionType::ENCRYPTED, MessageType::SPECIFIC));
     inStreamReceivePromise->resolve(inputChannelMessage);
 
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
-    auto secondReceivePromise = ReceivePromise::defer(ioService_);
+    auto secondReceivePromise = ReceivePromise::defer(ioContext_);
     secondReceivePromise->then(std::bind(&ReceivePromiseHandlerMock::onResolve, &receivePromiseHandlerMock_, std::placeholders::_1),
                               std::bind(&ReceivePromiseHandlerMock::onReject, &receivePromiseHandlerMock_, std::placeholders::_1));
     themessenger->enqueueReceive(ChannelId::INPUT, std::move(secondReceivePromise));
@@ -107,35 +107,35 @@ BOOST_FIXTURE_TEST_CASE(Messenger_DirectReceive, MessengerUnitTest)
     EXPECT_CALL(receivePromiseHandlerMock_, onReject(_)).Times(0);
     EXPECT_CALL(receivePromiseHandlerMock_, onResolve(inputChannelMessage));
 
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     Message::Pointer audioChannelMessage(std::make_shared<Message>(ChannelId::MEDIA_AUDIO, EncryptionType::ENCRYPTED, MessageType::SPECIFIC));
     inStreamReceivePromise->resolve(audioChannelMessage);
 
     EXPECT_CALL(receivePromiseHandlerMock_, onReject(_)).Times(0);
     EXPECT_CALL(receivePromiseHandlerMock_, onResolve(audioChannelMessage));
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(Messenger_OnlyOneReceiveAtATime, MessengerUnitTest)
 {
-    Messenger::Pointer themessenger(std::make_shared<Messenger>(ioService_, messageInStream_, messageOutStream_));
+    Messenger::Pointer themessenger(std::make_shared<Messenger>(ioContext_, messageInStream_, messageOutStream_));
     themessenger->enqueueReceive(ChannelId::MEDIA_AUDIO, std::move(receivePromise_));
 
     ReceivePromise::Pointer inStreamReceivePromise;
     EXPECT_CALL(messageInStreamMock_, startReceive(_)).WillOnce(SaveArg<0>(&inStreamReceivePromise));
 
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
-    auto secondReceivePromise = ReceivePromise::defer(ioService_);
+    auto secondReceivePromise = ReceivePromise::defer(ioContext_);
     secondReceivePromise->then(std::bind(&ReceivePromiseHandlerMock::onResolve, &receivePromiseHandlerMock_, std::placeholders::_1),
                               std::bind(&ReceivePromiseHandlerMock::onReject, &receivePromiseHandlerMock_, std::placeholders::_1));
     themessenger->enqueueReceive(ChannelId::INPUT, std::move(secondReceivePromise));
 
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     const error::Error e(error::ErrorCode::USB_TRANSFER, 41);
     inStreamReceivePromise->reject(e);
@@ -143,12 +143,12 @@ BOOST_FIXTURE_TEST_CASE(Messenger_OnlyOneReceiveAtATime, MessengerUnitTest)
     EXPECT_CALL(receivePromiseHandlerMock_, onReject(e)).Times(2);
     EXPECT_CALL(receivePromiseHandlerMock_, onResolve(_)).Times(0);
 
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(Messenger_Send, MessengerUnitTest)
 {
-    Messenger::Pointer themessenger(std::make_shared<Messenger>(ioService_, messageInStream_, messageOutStream_));
+    Messenger::Pointer themessenger(std::make_shared<Messenger>(ioContext_, messageInStream_, messageOutStream_));
 
     Message::Pointer message(std::make_shared<Message>(ChannelId::MEDIA_AUDIO, EncryptionType::ENCRYPTED, MessageType::SPECIFIC));
     themessenger->enqueueSend(message, std::move(sendPromise_));
@@ -156,19 +156,19 @@ BOOST_FIXTURE_TEST_CASE(Messenger_Send, MessengerUnitTest)
     SendPromise::Pointer outStreamSendPromise;
     EXPECT_CALL(messageOutStreamMock_, stream(message, _)).WillOnce(SaveArg<1>(&outStreamSendPromise));
 
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     EXPECT_CALL(sendPromiseHandlerMock_, onReject(_)).Times(0);
     EXPECT_CALL(sendPromiseHandlerMock_, onResolve());
 
     outStreamSendPromise->resolve();
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(Messenger_OnlyOneSendAtATime, MessengerUnitTest)
 {
-    Messenger::Pointer themessenger(std::make_shared<Messenger>(ioService_, messageInStream_, messageOutStream_));
+    Messenger::Pointer themessenger(std::make_shared<Messenger>(ioContext_, messageInStream_, messageOutStream_));
 
     Message::Pointer message(std::make_shared<Message>(ChannelId::MEDIA_AUDIO, EncryptionType::ENCRYPTED, MessageType::SPECIFIC));
     themessenger->enqueueSend(message, std::move(sendPromise_));
@@ -176,30 +176,30 @@ BOOST_FIXTURE_TEST_CASE(Messenger_OnlyOneSendAtATime, MessengerUnitTest)
     SendPromise::Pointer outStreamSendPromise;
     EXPECT_CALL(messageOutStreamMock_, stream(message, _)).Times(2).WillRepeatedly(SaveArg<1>(&outStreamSendPromise));
 
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
-    auto secondSendPromise = SendPromise::defer(ioService_);
+    auto secondSendPromise = SendPromise::defer(ioContext_);
     secondSendPromise->then(std::bind(&SendPromiseHandlerMock::onResolve, &sendPromiseHandlerMock_),
                            std::bind(&SendPromiseHandlerMock::onReject, &sendPromiseHandlerMock_, std::placeholders::_1));
     themessenger->enqueueSend(message, std::move(secondSendPromise));
 
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     EXPECT_CALL(sendPromiseHandlerMock_, onReject(_)).Times(0);
     EXPECT_CALL(sendPromiseHandlerMock_, onResolve()).Times(2);
     outStreamSendPromise->resolve();
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     outStreamSendPromise->resolve();
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(Messenger_SendFailed, MessengerUnitTest)
 {
-    Messenger::Pointer themessenger(std::make_shared<Messenger>(ioService_, messageInStream_, messageOutStream_));
+    Messenger::Pointer themessenger(std::make_shared<Messenger>(ioContext_, messageInStream_, messageOutStream_));
 
     Message::Pointer message(std::make_shared<Message>(ChannelId::MEDIA_AUDIO, EncryptionType::ENCRYPTED, MessageType::SPECIFIC));
     themessenger->enqueueSend(message, std::move(sendPromise_));
@@ -207,23 +207,23 @@ BOOST_FIXTURE_TEST_CASE(Messenger_SendFailed, MessengerUnitTest)
     SendPromise::Pointer outStreamSendPromise;
     EXPECT_CALL(messageOutStreamMock_, stream(message, _)).WillOnce(SaveArg<1>(&outStreamSendPromise));
 
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
-    auto secondSendPromise = SendPromise::defer(ioService_);
+    auto secondSendPromise = SendPromise::defer(ioContext_);
     secondSendPromise->then(std::bind(&SendPromiseHandlerMock::onResolve, &sendPromiseHandlerMock_),
                            std::bind(&SendPromiseHandlerMock::onReject, &sendPromiseHandlerMock_, std::placeholders::_1));
     themessenger->enqueueSend(message, std::move(secondSendPromise));
 
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     error::Error e(error::ErrorCode::USB_TRANSFER, 67);
     outStreamSendPromise->reject(e);
 
     EXPECT_CALL(sendPromiseHandlerMock_, onReject(e)).Times(2);
     EXPECT_CALL(sendPromiseHandlerMock_, onResolve()).Times(0);
-    ioService_.run();
+    ioContext_.run();
 }
 
 }

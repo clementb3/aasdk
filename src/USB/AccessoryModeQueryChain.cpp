@@ -28,10 +28,10 @@ namespace usb
 {
 
 AccessoryModeQueryChain::AccessoryModeQueryChain(IUSBWrapper& usbWrapper,
-                                                 boost::asio::io_service& ioService,
+                                                 boost::asio::io_context& ioContext,
                                                  IAccessoryModeQueryFactory& queryFactory)
     : usbWrapper_(usbWrapper)
-    , strand_(ioService)
+    , strand_(ioContext)
     , queryFactory_(queryFactory)
 {
 
@@ -39,7 +39,7 @@ AccessoryModeQueryChain::AccessoryModeQueryChain(IUSBWrapper& usbWrapper,
 
 void AccessoryModeQueryChain::start(DeviceHandle handle, Promise::Pointer promise)
 {   
-    strand_.dispatch([this, self = this->shared_from_this(), handle = std::move(handle), promise = std::move(promise)]() mutable {
+    boost::asio::dispatch(strand_, [ self = this->shared_from_this(), handle = std::move(handle), promise = std::move(promise)]() mutable {
         if(promise_ != nullptr)
         {
             promise->reject(error::Error(error::ErrorCode::OPERATION_IN_PROGRESS));

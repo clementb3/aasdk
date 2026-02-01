@@ -29,9 +29,9 @@ namespace aasdk
 namespace usb
 {
 
-USBHub::USBHub(IUSBWrapper& usbWrapper, boost::asio::io_service& ioService, IAccessoryModeQueryChainFactory& queryChainFactory)
+USBHub::USBHub(IUSBWrapper& usbWrapper, boost::asio::io_context& ioContext, IAccessoryModeQueryChainFactory& queryChainFactory)
     : usbWrapper_(usbWrapper)
-    , strand_(ioService)
+    , strand_(ioContext)
     , queryChainFactory_(queryChainFactory)
 {
 }

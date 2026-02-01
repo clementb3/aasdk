@@ -34,7 +34,7 @@ namespace messenger
 class MessageInStream: public IMessageInStream, public std::enable_shared_from_this<MessageInStream>, boost::noncopyable
 {
 public:
-    MessageInStream(boost::asio::io_service& ioService, transport::ITransport::Pointer transport, ICryptor::Pointer cryptor);
+    MessageInStream(boost::asio::io_context& ioContext, transport::ITransport::Pointer transport, ICryptor::Pointer cryptor);
 
     void startReceive(ReceivePromise::Pointer promise) override;
 
@@ -45,7 +45,7 @@ private:
     void receiveFrameSizeHandler(const common::DataConstBuffer& buffer);
     void receiveFramePayloadHandler(const common::DataConstBuffer& buffer);
 
-    boost::asio::io_service::strand strand_;
+    boost::asio::io_context::strand strand_;
     transport::ITransport::Pointer transport_;
     ICryptor::Pointer cryptor_;
     FrameType recentFrameType_;

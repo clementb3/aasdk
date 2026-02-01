@@ -41,13 +41,13 @@ protected:
     AccessoryModeSendStringQueryUnitTest()
       : usbEndpointMock_(std::make_shared<USBEndpointMock>())
       , usbEndpoint_(usbEndpointMock_.get(), [](auto*) {})
-      , promise_(IAccessoryModeQuery::Promise::defer(ioService_))
+      , promise_(IAccessoryModeQuery::Promise::defer(ioContext_))
     {
         promise_->then(std::bind(&AccessoryModeQueryPromiseHandlerMock::onResolve, &promiseHandlerMock_, std::placeholders::_1),
                       std::bind(&AccessoryModeQueryPromiseHandlerMock::onReject, &promiseHandlerMock_, std::placeholders::_1));
     }
 
-    boost::asio::io_service ioService_;
+    boost::asio::io_context ioContext_;
     USBWrapperMock usbWrapperMock_;
     std::shared_ptr<USBEndpointMock> usbEndpointMock_;
     IUSBEndpoint::Pointer usbEndpoint_;
@@ -67,11 +67,11 @@ BOOST_FIXTURE_TEST_CASE(AccessoryModeSendStringQuery_SendString, AccessoryModeSe
     const std::string expectedQueryString = "aasdkTest";
     EXPECT_CALL(usbWrapperMock_, fillControlSetup(NotNull(), LIBUSB_ENDPOINT_OUT | USB_TYPE_VENDOR, ACC_REQ_SEND_STRING, 0, static_cast<uint16_t>(AccessoryModeSendStringType::MANUFACTURER), expectedQueryString.size() + 1));
 
-    AccessoryModeSendStringQuery::Pointer query(std::make_shared<AccessoryModeSendStringQuery>(ioService_, usbWrapperMock_, usbEndpointMock_, AccessoryModeSendStringType::MANUFACTURER, expectedQueryString));
+    AccessoryModeSendStringQuery::Pointer query(std::make_shared<AccessoryModeSendStringQuery>(ioContext_, usbWrapperMock_, usbEndpointMock_, AccessoryModeSendStringType::MANUFACTURER, expectedQueryString));
 
     query->start(std::move(promise_));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     BOOST_TEST(buffer.size == expectedQueryString.size() + 1 + 8);
     const std::string actualQueryString(buffer.data + 8, buffer.data + buffer.size - 1);
@@ -81,7 +81,7 @@ BOOST_FIXTURE_TEST_CASE(AccessoryModeSendStringQuery_SendString, AccessoryModeSe
 
     EXPECT_CALL(promiseHandlerMock_, onReject(_)).Times(0);
     EXPECT_CALL(promiseHandlerMock_, onResolve(usbEndpoint_));
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(AccessoryModeSendStringQuery_TransferError, AccessoryModeSendStringQueryUnitTest)
@@ -93,18 +93,18 @@ BOOST_FIXTURE_TEST_CASE(AccessoryModeSendStringQuery_TransferError, AccessoryMod
     const std::string expectedQueryString = "aasdkTest";
     EXPECT_CALL(usbWrapperMock_, fillControlSetup(NotNull(), LIBUSB_ENDPOINT_OUT | USB_TYPE_VENDOR, ACC_REQ_SEND_STRING, 0, static_cast<uint16_t>(AccessoryModeSendStringType::MANUFACTURER), expectedQueryString.size() + 1));
 
-    AccessoryModeSendStringQuery::Pointer query(std::make_shared<AccessoryModeSendStringQuery>(ioService_, usbWrapperMock_, usbEndpointMock_, AccessoryModeSendStringType::MANUFACTURER, expectedQueryString));
+    AccessoryModeSendStringQuery::Pointer query(std::make_shared<AccessoryModeSendStringQuery>(ioContext_, usbWrapperMock_, usbEndpointMock_, AccessoryModeSendStringType::MANUFACTURER, expectedQueryString));
 
     query->start(std::move(promise_));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     const error::Error transferError(error::ErrorCode::USB_TRANSFER, LIBUSB_TRANSFER_ERROR);
     usbEndpointPromise->reject(transferError);
 
     EXPECT_CALL(promiseHandlerMock_, onReject(transferError));
     EXPECT_CALL(promiseHandlerMock_, onResolve(_)).Times(0);
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(AccessoryModeSendStringQuery_RejectWhenInProgress, AccessoryModeSendStringQueryUnitTest)
@@ -116,14 +116,14 @@ BOOST_FIXTURE_TEST_CASE(AccessoryModeSendStringQuery_RejectWhenInProgress, Acces
     const std::string expectedQueryString = "aasdkTest";
     EXPECT_CALL(usbWrapperMock_, fillControlSetup(NotNull(), LIBUSB_ENDPOINT_OUT | USB_TYPE_VENDOR, ACC_REQ_SEND_STRING, 0, static_cast<uint16_t>(AccessoryModeSendStringType::MANUFACTURER), expectedQueryString.size() + 1));
 
-    AccessoryModeSendStringQuery::Pointer query(std::make_shared<AccessoryModeSendStringQuery>(ioService_, usbWrapperMock_, usbEndpointMock_, AccessoryModeSendStringType::MANUFACTURER, expectedQueryString));
+    AccessoryModeSendStringQuery::Pointer query(std::make_shared<AccessoryModeSendStringQuery>(ioContext_, usbWrapperMock_, usbEndpointMock_, AccessoryModeSendStringType::MANUFACTURER, expectedQueryString));
 
     query->start(std::move(promise_));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     AccessoryModeQueryPromiseHandlerMock secondPromiseHandlerMock;
-    auto secondPromise = IAccessoryModeQuery::Promise::defer(ioService_);
+    auto secondPromise = IAccessoryModeQuery::Promise::defer(ioContext_);
     secondPromise->then(std::bind(&AccessoryModeQueryPromiseHandlerMock::onResolve, &secondPromiseHandlerMock, std::placeholders::_1),
                        std::bind(&AccessoryModeQueryPromiseHandlerMock::onReject, &secondPromiseHandlerMock, std::placeholders::_1));
 
@@ -131,7 +131,7 @@ BOOST_FIXTURE_TEST_CASE(AccessoryModeSendStringQuery_RejectWhenInProgress, Acces
     EXPECT_CALL(secondPromiseHandlerMock, onResolve(_)).Times(0);
     query->start(std::move(secondPromise));
 
-    ioService_.run();
+    ioContext_.run();
 }
 
 }

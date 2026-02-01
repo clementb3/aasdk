@@ -41,14 +41,14 @@ class USBEndpointUnitTest
 protected:
     USBEndpointUnitTest()
       : deviceHandle_(reinterpret_cast<libusb_device_handle*>(&dummyDeviceHandle_), [](auto*) {})
-      , promise_(IUSBEndpoint::Promise::defer(ioService_))
+      , promise_(IUSBEndpoint::Promise::defer(ioContext_))
     {
         promise_->then(std::bind(&USBEndpointPromiseHandlerMock::onResolve, &promiseHandlerMock_, std::placeholders::_1),
                       std::bind(&USBEndpointPromiseHandlerMock::onReject, &promiseHandlerMock_, std::placeholders::_1));
     }
 
     USBWrapperMock usbWrapperMock_;
-    boost::asio::io_service ioService_;
+    boost::asio::io_context ioContext_;
     USBWrapperMock::DummyDeviceHandle dummyDeviceHandle_;
     DeviceHandle deviceHandle_;
     USBEndpointPromiseHandlerMock promiseHandlerMock_;
@@ -58,82 +58,82 @@ protected:
 BOOST_FIXTURE_TEST_CASE(USBEndpoint_ControlTransferForNonControlEndpoint, USBEndpointUnitTest)
 {
     common::Data data(10, 0);
-    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioService_, deviceHandle_, 0x01));
+    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioContext_, deviceHandle_, 0x01));
 
     EXPECT_CALL(promiseHandlerMock_, onReject(error::Error(error::ErrorCode::USB_INVALID_TRANSFER_METHOD)));
     EXPECT_CALL(promiseHandlerMock_, onResolve(_)).Times(0);
     usbEndpoint->controlTransfer(common::DataBuffer(data), 0, std::move(promise_));
 
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(USBEndpoint_BulkTransferForControlEndpoint, USBEndpointUnitTest)
 {
     common::Data data(10, 0);
-    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioService_, deviceHandle_));
+    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioContext_, deviceHandle_));
 
     EXPECT_CALL(promiseHandlerMock_, onReject(error::Error(error::ErrorCode::USB_INVALID_TRANSFER_METHOD)));
     EXPECT_CALL(promiseHandlerMock_, onResolve(_)).Times(0);
     usbEndpoint->bulkTransfer(common::DataBuffer(data), 0, std::move(promise_));
 
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(USBEndpoint_InterruptTransferForControlEndpoint, USBEndpointUnitTest)
 {
     common::Data data(10, 0);
-    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioService_, deviceHandle_));
+    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioContext_, deviceHandle_));
 
     EXPECT_CALL(promiseHandlerMock_, onReject(error::Error(error::ErrorCode::USB_INVALID_TRANSFER_METHOD)));
     EXPECT_CALL(promiseHandlerMock_, onResolve(_)).Times(0);
     usbEndpoint->interruptTransfer(common::DataBuffer(data), 0, std::move(promise_));
 
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(USBEndpoint_ControlTransferAllocationFailed, USBEndpointUnitTest)
 {
     common::Data data(10, 0);
-    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioService_, deviceHandle_));
+    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioContext_, deviceHandle_));
 
     EXPECT_CALL(usbWrapperMock_, allocTransfer(0)).WillOnce(Return(nullptr));
     EXPECT_CALL(promiseHandlerMock_, onReject(error::Error(error::ErrorCode::USB_TRANSFER_ALLOCATION)));
     EXPECT_CALL(promiseHandlerMock_, onResolve(_)).Times(0);
     usbEndpoint->controlTransfer(common::DataBuffer(data), 0, std::move(promise_));
 
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(USBEndpoint_BulkTransferAllocationFailed, USBEndpointUnitTest)
 {
     common::Data data(10, 0);
-    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioService_, deviceHandle_, 0x01));
+    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioContext_, deviceHandle_, 0x01));
 
     EXPECT_CALL(usbWrapperMock_, allocTransfer(0)).WillOnce(Return(nullptr));
     EXPECT_CALL(promiseHandlerMock_, onReject(error::Error(error::ErrorCode::USB_TRANSFER_ALLOCATION)));
     EXPECT_CALL(promiseHandlerMock_, onResolve(_)).Times(0);
     usbEndpoint->bulkTransfer(common::DataBuffer(data), 0, std::move(promise_));
 
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(USBEndpoint_InterruptTransferAllocationFailed, USBEndpointUnitTest)
 {
     common::Data data(10, 0);
-    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioService_, deviceHandle_, 0x01));
+    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioContext_, deviceHandle_, 0x01));
 
     EXPECT_CALL(usbWrapperMock_, allocTransfer(0)).WillOnce(Return(nullptr));
     EXPECT_CALL(promiseHandlerMock_, onReject(error::Error(error::ErrorCode::USB_TRANSFER_ALLOCATION)));
     EXPECT_CALL(promiseHandlerMock_, onResolve(_)).Times(0);
     usbEndpoint->interruptTransfer(common::DataBuffer(data), 0, std::move(promise_));
 
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(USBEndpoint_BulkTransfer, USBEndpointUnitTest)
 {
     const uint8_t endpointAddress = 0x55;
-    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioService_, deviceHandle_, endpointAddress));
+    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioContext_, deviceHandle_, endpointAddress));
 
     libusb_transfer transfer;
     EXPECT_CALL(usbWrapperMock_, allocTransfer(0)).WillOnce(Return(&transfer));
@@ -146,8 +146,8 @@ BOOST_FIXTURE_TEST_CASE(USBEndpoint_BulkTransfer, USBEndpointUnitTest)
     EXPECT_CALL(usbWrapperMock_, submitTransfer(&transfer));
 
     usbEndpoint->bulkTransfer(common::DataBuffer(data), 0, std::move(promise_));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     transfer.actual_length = buffer.size;
     transfer.status = LIBUSB_TRANSFER_COMPLETED;
@@ -156,13 +156,13 @@ BOOST_FIXTURE_TEST_CASE(USBEndpoint_BulkTransfer, USBEndpointUnitTest)
     EXPECT_CALL(usbWrapperMock_, freeTransfer(&transfer));
     EXPECT_CALL(promiseHandlerMock_, onReject(_)).Times(0);
     EXPECT_CALL(promiseHandlerMock_, onResolve(buffer.size));
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(USBEndpoint_MultipleBulkTransfers, USBEndpointUnitTest)
 {
     const uint8_t endpointAddress = 0x55;
-    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioService_, deviceHandle_, endpointAddress));
+    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioContext_, deviceHandle_, endpointAddress));
 
     libusb_transfer transfer;
     EXPECT_CALL(usbWrapperMock_, allocTransfer(0)).WillRepeatedly(Return(&transfer));
@@ -186,25 +186,25 @@ BOOST_FIXTURE_TEST_CASE(USBEndpoint_MultipleBulkTransfers, USBEndpointUnitTest)
         transfer.actual_length = 0;
         transfer.status = LIBUSB_TRANSFER_ERROR;
 
-        auto promise = IUSBEndpoint::Promise::defer(ioService_);
+        auto promise = IUSBEndpoint::Promise::defer(ioContext_);
         promise->then(std::bind(&USBEndpointPromiseHandlerMock::onResolve, &promiseHandlerMock_, std::placeholders::_1),
                       std::bind(&USBEndpointPromiseHandlerMock::onReject, &promiseHandlerMock_, std::placeholders::_1));
 
         usbEndpoint->bulkTransfer(common::DataBuffer(data), 0, std::move(promise));
-        ioService_.run();
-        ioService_.reset();
+        ioContext_.run();
+        ioContext_.reset();
 
         transfer.actual_length = buffer.size;
         transfer.status = LIBUSB_TRANSFER_COMPLETED;
         transferCallback(&transfer);
-        ioService_.run();
-        ioService_.reset();
+        ioContext_.run();
+        ioContext_.reset();
     }
 }
 
 BOOST_FIXTURE_TEST_CASE(USBEndpoint_ControlTransfer, USBEndpointUnitTest)
 {
-    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioService_, deviceHandle_));
+    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioContext_, deviceHandle_));
 
     libusb_transfer transfer;
     EXPECT_CALL(usbWrapperMock_, allocTransfer(0)).WillOnce(Return(&transfer));
@@ -217,8 +217,8 @@ BOOST_FIXTURE_TEST_CASE(USBEndpoint_ControlTransfer, USBEndpointUnitTest)
     EXPECT_CALL(usbWrapperMock_, submitTransfer(&transfer));
 
     usbEndpoint->controlTransfer(common::DataBuffer(data), 0, std::move(promise_));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     transfer.actual_length = buffer.size;
     transfer.status = LIBUSB_TRANSFER_COMPLETED;
@@ -227,13 +227,13 @@ BOOST_FIXTURE_TEST_CASE(USBEndpoint_ControlTransfer, USBEndpointUnitTest)
     EXPECT_CALL(usbWrapperMock_, freeTransfer(&transfer));
     EXPECT_CALL(promiseHandlerMock_, onReject(_)).Times(0);
     EXPECT_CALL(promiseHandlerMock_, onResolve(buffer.size));
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(USBEndpoint_InterruptTransfer, USBEndpointUnitTest)
 {
     const uint8_t endpointAddress = 0x35;
-    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioService_, deviceHandle_, endpointAddress));
+    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioContext_, deviceHandle_, endpointAddress));
 
     libusb_transfer transfer;
     EXPECT_CALL(usbWrapperMock_, allocTransfer(0)).WillOnce(Return(&transfer));
@@ -246,8 +246,8 @@ BOOST_FIXTURE_TEST_CASE(USBEndpoint_InterruptTransfer, USBEndpointUnitTest)
     EXPECT_CALL(usbWrapperMock_, submitTransfer(&transfer));
 
     usbEndpoint->interruptTransfer(common::DataBuffer(data), 0, std::move(promise_));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     transfer.actual_length = buffer.size;
     transfer.status = LIBUSB_TRANSFER_COMPLETED;
@@ -256,13 +256,13 @@ BOOST_FIXTURE_TEST_CASE(USBEndpoint_InterruptTransfer, USBEndpointUnitTest)
     EXPECT_CALL(usbWrapperMock_, freeTransfer(&transfer));
     EXPECT_CALL(promiseHandlerMock_, onReject(_)).Times(0);
     EXPECT_CALL(promiseHandlerMock_, onResolve(buffer.size));
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(USBEndpoint_BulkTransferFailed, USBEndpointUnitTest)
 {
     const uint8_t endpointAddress = 0x55;
-    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioService_, deviceHandle_, endpointAddress));
+    USBEndpoint::Pointer usbEndpoint(std::make_shared<USBEndpoint>(usbWrapperMock_, ioContext_, deviceHandle_, endpointAddress));
 
     libusb_transfer transfer;
     EXPECT_CALL(usbWrapperMock_, allocTransfer(0)).WillOnce(Return(&transfer));
@@ -275,8 +275,8 @@ BOOST_FIXTURE_TEST_CASE(USBEndpoint_BulkTransferFailed, USBEndpointUnitTest)
     EXPECT_CALL(usbWrapperMock_, submitTransfer(&transfer));
 
     usbEndpoint->bulkTransfer(common::DataBuffer(data), 0, std::move(promise_));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     transfer.actual_length = buffer.size;
     transfer.status = LIBUSB_TRANSFER_CANCELLED;
@@ -285,7 +285,7 @@ BOOST_FIXTURE_TEST_CASE(USBEndpoint_BulkTransferFailed, USBEndpointUnitTest)
     EXPECT_CALL(usbWrapperMock_, freeTransfer(&transfer));
     EXPECT_CALL(promiseHandlerMock_, onReject(error::Error(error::ErrorCode::OPERATION_ABORTED))).Times(1);
     EXPECT_CALL(promiseHandlerMock_, onResolve(_)).Times(0);
-    ioService_.run();
+    ioContext_.run();
 }
 
 }

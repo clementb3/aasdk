@@ -33,7 +33,7 @@ namespace input
 class InputServiceChannel: public IInputServiceChannel, public ServiceChannel, public std::enable_shared_from_this<InputServiceChannel>
 {
  public:
-    InputServiceChannel(boost::asio::io_service::strand& strand, messenger::IMessenger::Pointer messenger);
+    InputServiceChannel(boost::asio::io_context::strand& strand, messenger::IMessenger::Pointer messenger);
 
     void receive(IInputServiceChannelEventHandler::Pointer eventHandler) override;
     void sendChannelOpenResponse(const proto::messages::ChannelOpenResponse& response, SendPromise::Pointer promise) override;

@@ -40,8 +40,8 @@ class TCPTransportUnitTest
 {
 protected:
     TCPTransportUnitTest()
-        : receivePromise_(ITransport::ReceivePromise::defer(ioService_))
-        , sendPromise_(ITransport::SendPromise::defer(ioService_))
+        : receivePromise_(ITransport::ReceivePromise::defer(ioContext_))
+        , sendPromise_(ITransport::SendPromise::defer(ioContext_))
         , tcpEndpoint_(&tcpEndpointMock_, [](auto*) {})
     {
         receivePromise_->then(std::bind(&TransportReceivePromiseHandlerMock::onResolve, &receivePromiseHandlerMock_, std::placeholders::_1),
@@ -51,7 +51,7 @@ protected:
                            std::bind(&TransportSendPromiseHandlerMock::onReject, &sendPromiseHandlerMock_, std::placeholders::_1));
     }
 
-    boost::asio::io_service ioService_;
+    boost::asio::io_context ioContext_;
     tcp::ut::TCPEndpointMock tcpEndpointMock_;
     TransportReceivePromiseHandlerMock receivePromiseHandlerMock_;
     ITransport::ReceivePromise::Pointer receivePromise_;
@@ -68,10 +68,10 @@ BOOST_FIXTURE_TEST_CASE(TCPTransport_ReceiveAtOnce, TCPTransportUnitTest)
     common::DataBuffer dataBuffer;
     EXPECT_CALL(tcpEndpointMock_, receive(_, _)).WillOnce(DoAll(SaveArg<0>(&dataBuffer), SaveArg<1>(&tcpEndpointPromise)));
 
-    auto transport(std::make_shared<TCPTransport>(ioService_, tcpEndpoint_));
+    auto transport(std::make_shared<TCPTransport>(ioContext_, tcpEndpoint_));
     transport->receive(receiveSize, std::move(receivePromise_));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     BOOST_TEST(dataBuffer.size >= receiveSize);
     common::Data expectedData(receiveSize, 0x5E);
@@ -80,7 +80,7 @@ BOOST_FIXTURE_TEST_CASE(TCPTransport_ReceiveAtOnce, TCPTransportUnitTest)
     EXPECT_CALL(receivePromiseHandlerMock_, onResolve(expectedData)).Times(1);
     EXPECT_CALL(receivePromiseHandlerMock_, onReject(_)).Times(0);
     tcpEndpointPromise->resolve(receiveSize);
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(TCPTransport_ReceiveInPieces, TCPTransportUnitTest)
@@ -89,7 +89,7 @@ BOOST_FIXTURE_TEST_CASE(TCPTransport_ReceiveInPieces, TCPTransportUnitTest)
     const size_t receiveSize = 1000 * stepsCount;
     const size_t stepSize = receiveSize / stepsCount;
 
-    auto transport(std::make_shared<TCPTransport>(ioService_, tcpEndpoint_));
+    auto transport(std::make_shared<TCPTransport>(ioContext_, tcpEndpoint_));
     transport->receive(receiveSize, std::move(receivePromise_));
 
     tcp::ITCPEndpoint::Promise::Pointer tcpEndpointPromise;
@@ -103,14 +103,14 @@ BOOST_FIXTURE_TEST_CASE(TCPTransport_ReceiveInPieces, TCPTransportUnitTest)
 
     for(size_t i = 0; i < stepsCount; ++i)
     {
-        ioService_.run();
-        ioService_.reset();
+        ioContext_.run();
+        ioContext_.reset();
 
         BOOST_TEST(dataBuffer.size >= stepSize);
 
         std::fill(dataBuffer.data, dataBuffer.data + stepSize, 0x5E);
         tcpEndpointPromise->resolve(stepSize);
-        ioService_.run();
+        ioContext_.run();
     }
 }
 
@@ -123,23 +123,23 @@ BOOST_FIXTURE_TEST_CASE(TCPTransport_OnlyOneReceiveAtATime, TCPTransportUnitTest
     common::DataBuffer dataBuffer;
     EXPECT_CALL(tcpEndpointMock_, receive(_, _)).WillOnce(DoAll(SaveArg<0>(&dataBuffer), SaveArg<1>(&tcpEndpointPromise)));
 
-    auto transport(std::make_shared<TCPTransport>(ioService_, tcpEndpoint_));
+    auto transport(std::make_shared<TCPTransport>(ioContext_, tcpEndpoint_));
     transport->receive(stepSize, std::move(receivePromise_));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     BOOST_TEST(dataBuffer.size >= receiveSize);
     std::fill(dataBuffer.data, dataBuffer.data + stepSize, 0x5E);
     std::fill(dataBuffer.data + stepSize, dataBuffer.data + receiveSize, 0x5F);
 
-    auto secondPromise = ITransport::ReceivePromise::defer(ioService_);
+    auto secondPromise = ITransport::ReceivePromise::defer(ioContext_);
     TransportReceivePromiseHandlerMock secondPromiseHandlerMock;
     secondPromise->then(std::bind(&TransportReceivePromiseHandlerMock::onResolve, &secondPromiseHandlerMock, std::placeholders::_1),
                        std::bind(&TransportReceivePromiseHandlerMock::onReject, &secondPromiseHandlerMock, std::placeholders::_1));
 
     transport->receive(stepSize, std::move(secondPromise));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     common::Data expectedData(stepSize, 0x5E);
     EXPECT_CALL(receivePromiseHandlerMock_, onResolve(expectedData)).Times(1);
@@ -150,7 +150,7 @@ BOOST_FIXTURE_TEST_CASE(TCPTransport_OnlyOneReceiveAtATime, TCPTransportUnitTest
     EXPECT_CALL(secondPromiseHandlerMock, onReject(_)).Times(0);
 
     tcpEndpointPromise->resolve(receiveSize);
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(TCPTransport_ReceiveError, TCPTransportUnitTest)
@@ -158,23 +158,23 @@ BOOST_FIXTURE_TEST_CASE(TCPTransport_ReceiveError, TCPTransportUnitTest)
     tcp::ITCPEndpoint::Promise::Pointer tcpEndpointPromise;
     EXPECT_CALL(tcpEndpointMock_, receive(_, _)).WillOnce(SaveArg<1>(&tcpEndpointPromise));
 
-    auto transport(std::make_shared<TCPTransport>(ioService_, tcpEndpoint_));
+    auto transport(std::make_shared<TCPTransport>(ioContext_, tcpEndpoint_));
     transport->receive(1000, std::move(receivePromise_));
 
-    auto secondPromise = ITransport::ReceivePromise::defer(ioService_);
+    auto secondPromise = ITransport::ReceivePromise::defer(ioContext_);
     secondPromise->then(std::bind(&TransportReceivePromiseHandlerMock::onResolve, &receivePromiseHandlerMock_, std::placeholders::_1),
                        std::bind(&TransportReceivePromiseHandlerMock::onReject, &receivePromiseHandlerMock_, std::placeholders::_1));
 
     transport->receive(1000, std::move(secondPromise));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     const error::Error e(error::ErrorCode::TCP_TRANSFER, 11);
     EXPECT_CALL(receivePromiseHandlerMock_, onResolve(_)).Times(0);
     EXPECT_CALL(receivePromiseHandlerMock_, onReject(e)).Times(2);
 
     tcpEndpointPromise->reject(e);
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(TCPTransport_Send, TCPTransportUnitTest)
@@ -183,11 +183,11 @@ BOOST_FIXTURE_TEST_CASE(TCPTransport_Send, TCPTransportUnitTest)
     common::DataConstBuffer buffer;
     EXPECT_CALL(tcpEndpointMock_, send(_, _)).WillOnce(DoAll(SaveArg<0>(&buffer), SaveArg<1>(&tcpEndpointPromise)));
 
-    auto transport(std::make_shared<TCPTransport>(ioService_, tcpEndpoint_));
+    auto transport(std::make_shared<TCPTransport>(ioContext_, tcpEndpoint_));
     const common::Data expectedData(1000, 0x5E);
     transport->send(expectedData, std::move(sendPromise_));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     common::Data actualData(buffer.cdata, buffer.cdata + buffer.size);
     BOOST_CHECK_EQUAL_COLLECTIONS(actualData.begin(), actualData.end(), expectedData.begin(), expectedData.end());
@@ -195,7 +195,7 @@ BOOST_FIXTURE_TEST_CASE(TCPTransport_Send, TCPTransportUnitTest)
     EXPECT_CALL(sendPromiseHandlerMock_, onReject(_)).Times(0);
     EXPECT_CALL(sendPromiseHandlerMock_, onResolve());
     tcpEndpointPromise->resolve(expectedData.size());
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(TCPTransport_OnlyOneSendAtATime, TCPTransportUnitTest)
@@ -204,22 +204,22 @@ BOOST_FIXTURE_TEST_CASE(TCPTransport_OnlyOneSendAtATime, TCPTransportUnitTest)
     common::DataConstBuffer buffer;
     EXPECT_CALL(tcpEndpointMock_, send(_, _)).Times(2).WillRepeatedly(DoAll(SaveArg<0>(&buffer), SaveArg<1>(&tcpEndpointPromise)));
 
-    auto transport(std::make_shared<TCPTransport>(ioService_, tcpEndpoint_));
+    auto transport(std::make_shared<TCPTransport>(ioContext_, tcpEndpoint_));
     const common::Data expectedData1(1000, 0x5E);
     transport->send(expectedData1, std::move(sendPromise_));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     const common::Data expectedData2(3000, 0x5F);
 
-    auto secondSendPromise = ITransport::SendPromise::defer(ioService_);
+    auto secondSendPromise = ITransport::SendPromise::defer(ioContext_);
     TransportSendPromiseHandlerMock secondSendPromiseHandlerMock;
     secondSendPromise->then(std::bind(&TransportSendPromiseHandlerMock::onResolve, &secondSendPromiseHandlerMock),
                            std::bind(&TransportSendPromiseHandlerMock::onReject, &secondSendPromiseHandlerMock, std::placeholders::_1));
 
     transport->send(expectedData2, std::move(secondSendPromise));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     common::Data actualData1(buffer.cdata, buffer.cdata + buffer.size);
     BOOST_CHECK_EQUAL_COLLECTIONS(actualData1.begin(), actualData1.end(), expectedData1.begin(), expectedData1.end());
@@ -227,8 +227,8 @@ BOOST_FIXTURE_TEST_CASE(TCPTransport_OnlyOneSendAtATime, TCPTransportUnitTest)
     EXPECT_CALL(sendPromiseHandlerMock_, onReject(_)).Times(0);
     EXPECT_CALL(sendPromiseHandlerMock_, onResolve());
     tcpEndpointPromise->resolve(expectedData1.size());
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     common::Data actualData2(buffer.cdata, buffer.cdata + buffer.size);
     BOOST_CHECK_EQUAL_COLLECTIONS(actualData2.begin(), actualData2.end(), expectedData2.begin(), expectedData2.end());
@@ -236,7 +236,7 @@ BOOST_FIXTURE_TEST_CASE(TCPTransport_OnlyOneSendAtATime, TCPTransportUnitTest)
     EXPECT_CALL(secondSendPromiseHandlerMock, onReject(_)).Times(0);
     EXPECT_CALL(secondSendPromiseHandlerMock, onResolve());
     tcpEndpointPromise->resolve(expectedData2.size());
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(TCPTransport_SendError, TCPTransportUnitTest)
@@ -244,33 +244,33 @@ BOOST_FIXTURE_TEST_CASE(TCPTransport_SendError, TCPTransportUnitTest)
     tcp::ITCPEndpoint::Promise::Pointer tcpEndpointPromise;
     EXPECT_CALL(tcpEndpointMock_, send(_, _)).Times(2).WillRepeatedly(SaveArg<1>(&tcpEndpointPromise));
 
-    auto transport(std::make_shared<TCPTransport>(ioService_, tcpEndpoint_));
+    auto transport(std::make_shared<TCPTransport>(ioContext_, tcpEndpoint_));
     const common::Data expectedData1(1000, 0x5E);
     transport->send(expectedData1, std::move(sendPromise_));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
-    auto secondSendPromise = ITransport::SendPromise::defer(ioService_);
+    auto secondSendPromise = ITransport::SendPromise::defer(ioContext_);
     TransportSendPromiseHandlerMock secondSendPromiseHandlerMock;
     secondSendPromise->then(std::bind(&TransportSendPromiseHandlerMock::onResolve, &secondSendPromiseHandlerMock),
                            std::bind(&TransportSendPromiseHandlerMock::onReject, &secondSendPromiseHandlerMock, std::placeholders::_1));
 
     const common::Data expectedData2(3000, 0x5F);
     transport->send(expectedData2, std::move(secondSendPromise));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     const error::Error e(error::ErrorCode::USB_TRANSFER, 15);
     EXPECT_CALL(sendPromiseHandlerMock_, onReject(e));
     EXPECT_CALL(sendPromiseHandlerMock_, onResolve()).Times(0);
     tcpEndpointPromise->reject(e);
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     EXPECT_CALL(secondSendPromiseHandlerMock, onReject(_)).Times(0);
     EXPECT_CALL(secondSendPromiseHandlerMock, onResolve());
     tcpEndpointPromise->resolve(expectedData2.size());
-    ioService_.run();
+    ioContext_.run();
 }
 
 }

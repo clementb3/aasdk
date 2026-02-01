@@ -32,7 +32,7 @@ namespace channel
 namespace sensor
 {
 
-SensorServiceChannel::SensorServiceChannel(boost::asio::io_service::strand& strand,  messenger::IMessenger::Pointer messenger)
+SensorServiceChannel::SensorServiceChannel(boost::asio::io_context::strand& strand,  messenger::IMessenger::Pointer messenger)
     : ServiceChannel(strand, std::move(messenger), messenger::ChannelId::SENSOR)
 {
 

@@ -33,10 +33,14 @@ namespace usb
 
 class USBEndpoint: public IUSBEndpoint,
         public std::enable_shared_from_this<USBEndpoint>,
-        boost::noncopyable
 {
 public:
-    USBEndpoint(IUSBWrapper& usbWrapper, boost::asio::io_service& ioService, DeviceHandle handle, uint8_t endpointAddress = 0x00);
+    USBEndpoint(IUSBWrapper& usbWrapper, boost::asio::io_context& ioContext, DeviceHandle handle, uint8_t endpointAddress = 0x00);
+
+    // Interdire la copie
+    USBEndpoint(const USBEndpoint&) = delete;
+    USBEndpoint& operator=(const USBEndpoint&) = delete;
+
 
     void controlTransfer(common::DataBuffer buffer, uint32_t timeout, Promise::Pointer promise) override;
     void bulkTransfer(common::DataBuffer buffer, uint32_t timeout, Promise::Pointer promise) override;
@@ -53,7 +57,7 @@ private:
     static void transferHandler(libusb_transfer *transfer);
 
     IUSBWrapper& usbWrapper_;
-    boost::asio::io_service::strand strand_;
+    boost::asio::io_context::strand strand_;
     DeviceHandle handle_;
     uint8_t endpointAddress_;
     Transfers transfers_;

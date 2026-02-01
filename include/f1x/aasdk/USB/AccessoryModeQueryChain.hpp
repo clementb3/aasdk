@@ -31,16 +31,19 @@ namespace usb
     
 class IAccessoryModeQueryFactory;
 
-class AccessoryModeQueryChain: public IAccessoryModeQueryChain, public std::enable_shared_from_this<AccessoryModeQueryChain>, boost::noncopyable
+class AccessoryModeQueryChain: public IAccessoryModeQueryChain, public std::enable_shared_from_this<AccessoryModeQueryChain>
 {
 public:
     AccessoryModeQueryChain(IUSBWrapper& usbWrapper,
-                            boost::asio::io_service& ioService,
+                            boost::asio::io_context& ioContext,
                             IAccessoryModeQueryFactory& queryFactory);
 
     void start(DeviceHandle handle, Promise::Pointer promise) override;
     void cancel() override;
     
+    // Supprimer la copie
+    AccessoryModeQueryChain(const AccessoryModeQueryChain&) = delete;
+    AccessoryModeQueryChain& operator=(const AccessoryModeQueryChain&) = delete;
 private:
     using std::enable_shared_from_this<AccessoryModeQueryChain>::shared_from_this;
 
@@ -56,7 +59,7 @@ private:
     void startQueryHandler(IUSBEndpoint::Pointer usbEndpoint);
     
     IUSBWrapper& usbWrapper_;
-    boost::asio::io_service::strand strand_;
+    boost::asio::io_context::strand strand_;
     IAccessoryModeQueryFactory& queryFactory_;
     DeviceHandle handle_;    
     Promise::Pointer promise_;

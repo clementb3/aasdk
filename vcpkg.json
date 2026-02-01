@@ -1,0 +1,9 @@
+{
+  "dependencies": [
+    "openssl",
+    "boost-system",
+    "boost-log",
+    "libusb",
+    "protobuf"
+  ]
+}

@@ -32,7 +32,7 @@ namespace channel
 namespace av
 {
 
-AVInputServiceChannel::AVInputServiceChannel(boost::asio::io_service::strand& strand, messenger::IMessenger::Pointer messenger)
+AVInputServiceChannel::AVInputServiceChannel(boost::asio::io_context::strand& strand, messenger::IMessenger::Pointer messenger)
     : ServiceChannel(strand, std::move(messenger), messenger::ChannelId::AV_INPUT)
 {
 

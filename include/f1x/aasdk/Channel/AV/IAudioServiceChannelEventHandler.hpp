@@ -36,13 +36,13 @@ namespace channel
 namespace av
 {
 
-class IAudioServiceChannelEventHandler
+class IAudioContextChannelEventHandler
 {
 public:
-    typedef std::shared_ptr<IAudioServiceChannelEventHandler> Pointer;
+    typedef std::shared_ptr<IAudioContextChannelEventHandler> Pointer;
 
-    IAudioServiceChannelEventHandler() = default;
-    virtual ~IAudioServiceChannelEventHandler() = default;
+    IAudioContextChannelEventHandler() = default;
+    virtual ~IAudioContextChannelEventHandler() = default;
 
     virtual void onChannelOpenRequest(const proto::messages::ChannelOpenRequest& request) = 0;
     virtual void onAVChannelSetupRequest(const proto::messages::AVChannelSetupRequest& request) = 0;

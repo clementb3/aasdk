@@ -41,7 +41,7 @@ protected:
     AccessoryModeProtocolVersionQueryUnitTest()
       : usbEndpointMock_(std::make_shared<USBEndpointMock>())
       , usbEndpoint_(usbEndpointMock_.get(), [](auto*) {})
-      , promise_(IAccessoryModeQuery::Promise::defer(ioService_))
+      , promise_(IAccessoryModeQuery::Promise::defer(ioContext_))
     {
         promise_->then(std::bind(&AccessoryModeQueryPromiseHandlerMock::onResolve, &promiseHandlerMock_, std::placeholders::_1),
                       std::bind(&AccessoryModeQueryPromiseHandlerMock::onReject, &promiseHandlerMock_, std::placeholders::_1));
@@ -54,20 +54,20 @@ protected:
         EXPECT_CALL(*usbEndpointMock_, controlTransfer(_, _, _)).WillOnce(DoAll(SaveArg<0>(&buffer), SaveArg<2>(&usbEndpointPromise)));
         EXPECT_CALL(usbWrapperMock_, fillControlSetup(NotNull(), LIBUSB_ENDPOINT_IN | USB_TYPE_VENDOR, ACC_REQ_GET_PROTOCOL, 0, 0, sizeof(protocolVersion)));
 
-        AccessoryModeProtocolVersionQuery::Pointer query(std::make_shared<AccessoryModeProtocolVersionQuery>(ioService_, usbWrapperMock_, usbEndpointMock_));
+        AccessoryModeProtocolVersionQuery::Pointer query(std::make_shared<AccessoryModeProtocolVersionQuery>(ioContext_, usbWrapperMock_, usbEndpointMock_));
         query->start(std::move(promise_));
-        ioService_.run();
-        ioService_.reset();
+        ioContext_.run();
+        ioContext_.reset();
 
         reinterpret_cast<uint16_t&>(buffer.data[8]) = protocolVersion;
         usbEndpointPromise->resolve(buffer.size);
 
         EXPECT_CALL(promiseHandlerMock_, onReject(_)).Times(0);
         EXPECT_CALL(promiseHandlerMock_, onResolve(usbEndpoint_));
-        ioService_.run();
+        ioContext_.run();
     }
 
-    boost::asio::io_service ioService_;
+    boost::asio::io_context ioContext_;
     USBWrapperMock usbWrapperMock_;
     std::shared_ptr<USBEndpointMock> usbEndpointMock_;
     IUSBEndpoint::Pointer usbEndpoint_;
@@ -97,17 +97,17 @@ BOOST_FIXTURE_TEST_CASE(AccessoryModeProtocolVersionQuery_InvalidProtocolVersion
     EXPECT_CALL(*usbEndpointMock_, controlTransfer(_, _, _)).WillOnce(DoAll(SaveArg<0>(&buffer), SaveArg<2>(&usbEndpointPromise)));
     EXPECT_CALL(usbWrapperMock_, fillControlSetup(NotNull(), LIBUSB_ENDPOINT_IN | USB_TYPE_VENDOR, ACC_REQ_GET_PROTOCOL, 0, 0, sizeof(protocolVersion)));
 
-    AccessoryModeProtocolVersionQuery::Pointer query(std::make_shared<AccessoryModeProtocolVersionQuery>(ioService_, usbWrapperMock_, usbEndpointMock_));
+    AccessoryModeProtocolVersionQuery::Pointer query(std::make_shared<AccessoryModeProtocolVersionQuery>(ioContext_, usbWrapperMock_, usbEndpointMock_));
     query->start(std::move(promise_));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     reinterpret_cast<uint16_t&>(buffer.data[8]) = protocolVersion;
     usbEndpointPromise->resolve(buffer.size);
 
     EXPECT_CALL(promiseHandlerMock_, onReject(error::Error(error::ErrorCode::USB_AOAP_PROTOCOL_VERSION)));
     EXPECT_CALL(promiseHandlerMock_, onResolve(_)).Times(0);
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(AccessoryModeProtocolVersionQuery_TransferError, AccessoryModeProtocolVersionQueryUnitTest)
@@ -119,10 +119,10 @@ BOOST_FIXTURE_TEST_CASE(AccessoryModeProtocolVersionQuery_TransferError, Accesso
     EXPECT_CALL(*usbEndpointMock_, controlTransfer(_, _, _)).WillOnce(DoAll(SaveArg<0>(&buffer), SaveArg<2>(&usbEndpointPromise)));
     EXPECT_CALL(usbWrapperMock_, fillControlSetup(NotNull(), LIBUSB_ENDPOINT_IN | USB_TYPE_VENDOR, ACC_REQ_GET_PROTOCOL, 0, 0, sizeof(protocolVersion)));
 
-    AccessoryModeProtocolVersionQuery::Pointer query(std::make_shared<AccessoryModeProtocolVersionQuery>(ioService_, usbWrapperMock_, usbEndpointMock_));
+    AccessoryModeProtocolVersionQuery::Pointer query(std::make_shared<AccessoryModeProtocolVersionQuery>(ioContext_, usbWrapperMock_, usbEndpointMock_));
     query->start(std::move(promise_));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     reinterpret_cast<uint16_t&>(buffer.data[8]) = protocolVersion;
     const error::Error transferError(error::ErrorCode::USB_TRANSFER, LIBUSB_TRANSFER_ERROR);
@@ -130,7 +130,7 @@ BOOST_FIXTURE_TEST_CASE(AccessoryModeProtocolVersionQuery_TransferError, Accesso
 
     EXPECT_CALL(promiseHandlerMock_, onReject(transferError));
     EXPECT_CALL(promiseHandlerMock_, onResolve(_)).Times(0);
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(AccessoryModeProtocolVersionQuery_RejectWhenInProgress, AccessoryModeProtocolVersionQueryUnitTest)
@@ -142,20 +142,20 @@ BOOST_FIXTURE_TEST_CASE(AccessoryModeProtocolVersionQuery_RejectWhenInProgress, 
     EXPECT_CALL(*usbEndpointMock_, controlTransfer(_, _, _)).WillOnce(DoAll(SaveArg<0>(&buffer), SaveArg<2>(&usbEndpointPromise)));
     EXPECT_CALL(usbWrapperMock_, fillControlSetup(NotNull(), LIBUSB_ENDPOINT_IN | USB_TYPE_VENDOR, ACC_REQ_GET_PROTOCOL, 0, 0, sizeof(protocolVersion)));
 
-    AccessoryModeProtocolVersionQuery::Pointer query(std::make_shared<AccessoryModeProtocolVersionQuery>(ioService_, usbWrapperMock_, usbEndpointMock_));
+    AccessoryModeProtocolVersionQuery::Pointer query(std::make_shared<AccessoryModeProtocolVersionQuery>(ioContext_, usbWrapperMock_, usbEndpointMock_));
     query->start(std::move(promise_));
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     AccessoryModeQueryPromiseHandlerMock secondPromiseHandlerMock;
-    auto secondPromise = IAccessoryModeQuery::Promise::defer(ioService_);
+    auto secondPromise = IAccessoryModeQuery::Promise::defer(ioContext_);
     secondPromise->then(std::bind(&AccessoryModeQueryPromiseHandlerMock::onResolve, &secondPromiseHandlerMock, std::placeholders::_1),
                        std::bind(&AccessoryModeQueryPromiseHandlerMock::onReject, &secondPromiseHandlerMock, std::placeholders::_1));
 
     EXPECT_CALL(secondPromiseHandlerMock, onReject(error::Error(error::ErrorCode::OPERATION_IN_PROGRESS)));
     EXPECT_CALL(secondPromiseHandlerMock, onResolve(_)).Times(0);
     query->start(std::move(secondPromise));
-    ioService_.run();
+    ioContext_.run();
 }
 
 }

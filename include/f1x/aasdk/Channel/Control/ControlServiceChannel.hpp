@@ -35,7 +35,7 @@ namespace control
 class ControlServiceChannel: public IControlServiceChannel, public ServiceChannel, public std::enable_shared_from_this<ControlServiceChannel>
 {
 public:
-    ControlServiceChannel(boost::asio::io_service::strand& strand, messenger::IMessenger::Pointer messenger);
+    ControlServiceChannel(boost::asio::io_context::strand& strand, messenger::IMessenger::Pointer messenger);
 
     void receive(IControlServiceChannelEventHandler::Pointer eventHandler) override;
 

@@ -28,20 +28,20 @@ namespace aasdk
 namespace usb
 {
 
-AOAPDevice::AOAPDevice(IUSBWrapper& usbWrapper, boost::asio::io_service& ioService, DeviceHandle handle, const libusb_interface_descriptor* interfaceDescriptor)
+AOAPDevice::AOAPDevice(IUSBWrapper& usbWrapper, boost::asio::io_context& ioContext, DeviceHandle handle, const libusb_interface_descriptor* interfaceDescriptor)
     : usbWrapper_(usbWrapper)
     , handle_(std::move(handle))
     , interfaceDescriptor_(interfaceDescriptor)
 {
     if((interfaceDescriptor->endpoint[0].bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) == LIBUSB_ENDPOINT_IN)
     {
-        inEndpoint_ = std::make_shared<USBEndpoint>(usbWrapper_, ioService, handle_, interfaceDescriptor_->endpoint[0].bEndpointAddress);
-        outEndpoint_ = std::make_shared<USBEndpoint>(usbWrapper_, ioService, handle_, interfaceDescriptor_->endpoint[1].bEndpointAddress);
+        inEndpoint_ = std::make_shared<USBEndpoint>(usbWrapper_, ioContext, handle_, interfaceDescriptor_->endpoint[0].bEndpointAddress);
+        outEndpoint_ = std::make_shared<USBEndpoint>(usbWrapper_, ioContext, handle_, interfaceDescriptor_->endpoint[1].bEndpointAddress);
     }
     else
     {
-        inEndpoint_ = std::make_shared<USBEndpoint>(usbWrapper_, ioService, handle_, interfaceDescriptor_->endpoint[1].bEndpointAddress);
-        outEndpoint_ = std::make_shared<USBEndpoint>(usbWrapper_, ioService, handle_, interfaceDescriptor_->endpoint[0].bEndpointAddress);
+        inEndpoint_ = std::make_shared<USBEndpoint>(usbWrapper_, ioContext, handle_, interfaceDescriptor_->endpoint[1].bEndpointAddress);
+        outEndpoint_ = std::make_shared<USBEndpoint>(usbWrapper_, ioContext, handle_, interfaceDescriptor_->endpoint[0].bEndpointAddress);
     }
 }
 
@@ -62,7 +62,7 @@ IUSBEndpoint& AOAPDevice::getOutEndpoint()
     return *outEndpoint_;
 }
 
-IAOAPDevice::Pointer AOAPDevice::create(IUSBWrapper& usbWrapper, boost::asio::io_service& ioService, DeviceHandle handle)
+IAOAPDevice::Pointer AOAPDevice::create(IUSBWrapper& usbWrapper, boost::asio::io_context& ioContext, DeviceHandle handle)
 {
     auto configDescriptorHandle = AOAPDevice::getConfigDescriptor(usbWrapper, handle);
     auto interface = AOAPDevice::getInterface(configDescriptorHandle);
@@ -80,7 +80,7 @@ IAOAPDevice::Pointer AOAPDevice::create(IUSBWrapper& usbWrapper, boost::asio::io
         throw error::Error(error::ErrorCode::USB_CLAIM_INTERFACE, result);
     }
 
-    return std::make_unique<AOAPDevice>(usbWrapper, ioService, std::move(handle), interfaceDescriptor);
+    return std::make_unique<AOAPDevice>(usbWrapper, ioContext, std::move(handle), interfaceDescriptor);
 }
 
 ConfigDescriptorHandle AOAPDevice::getConfigDescriptor(IUSBWrapper& usbWrapper, DeviceHandle handle)

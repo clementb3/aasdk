@@ -25,8 +25,8 @@ namespace aasdk
 namespace transport
 {
 
-USBTransport::USBTransport(boost::asio::io_service& ioService, usb::IAOAPDevice::Pointer aoapDevice)
-    : Transport(ioService)
+USBTransport::USBTransport(boost::asio::io_context& ioContext, usb::IAOAPDevice::Pointer aoapDevice)
+    : Transport(ioContext)
     , aoapDevice_(std::move(aoapDevice))
 {}
 

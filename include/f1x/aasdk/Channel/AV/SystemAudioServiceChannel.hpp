@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <f1x/aasdk/Channel/AV/AudioServiceChannel.hpp>
+#include <f1x/aasdk/Channel/AV/AudioContextChannel.hpp>
 
 namespace f1x
 {
@@ -29,10 +29,10 @@ namespace channel
 namespace av
 {
 
-class SystemAudioServiceChannel: public AudioServiceChannel
+class SystemAudioContextChannel: public AudioContextChannel
 {
 public:
-    SystemAudioServiceChannel(boost::asio::io_service::strand& strand, messenger::IMessenger::Pointer messenger);
+    SystemAudioContextChannel(boost::asio::io_context::strand& strand, messenger::IMessenger::Pointer messenger);
 };
 
 }

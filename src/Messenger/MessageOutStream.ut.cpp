@@ -43,13 +43,13 @@ protected:
     MessageOutStreamUnitTest()
         : transport_(&transportMock_, [](auto*) {})
         , cryptor_(&cryptorMock_, [](auto*) {})
-        , sendPromise_(SendPromise::defer(ioService_))
+        , sendPromise_(SendPromise::defer(ioContext_))
     {
         sendPromise_->then(std::bind(&SendPromiseHandlerMock::onResolve, &sendPromiseHandlerMock_),
                           std::bind(&SendPromiseHandlerMock::onReject, &sendPromiseHandlerMock_, std::placeholders::_1));
     }
 
-    boost::asio::io_service ioService_;
+    boost::asio::io_context ioContext_;
     transport::ut::TransportMock transportMock_;
     transport::ITransport::Pointer transport_;
     CryptorMock cryptorMock_;
@@ -81,16 +81,16 @@ BOOST_FIXTURE_TEST_CASE(MessageOutStream_SendPlainMessage, MessageOutStreamUnitT
 
     Message::Pointer message(std::make_shared<Message>(ChannelId::INPUT, EncryptionType::PLAIN, MessageType::CONTROL));
     message->insertPayload(payload);
-    MessageOutStream::Pointer messageOutStream(std::make_shared<MessageOutStream>(ioService_, transport_, cryptor_));
+    MessageOutStream::Pointer messageOutStream(std::make_shared<MessageOutStream>(ioContext_, transport_, cryptor_));
     messageOutStream->stream(message, std::move(sendPromise_));
 
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     EXPECT_CALL(sendPromiseHandlerMock_, onReject(_)).Times(0);
     EXPECT_CALL(sendPromiseHandlerMock_, onResolve());
     transportSendPromise->resolve();
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(MessageOutStream_SendEncryptedMessage, MessageOutStreamUnitTest)
@@ -115,16 +115,16 @@ BOOST_FIXTURE_TEST_CASE(MessageOutStream_SendEncryptedMessage, MessageOutStreamU
     Message::Pointer message(std::make_shared<Message>(ChannelId::VIDEO, EncryptionType::ENCRYPTED, MessageType::CONTROL));
     const common::Data payload(1000, 0x5E);
     message->insertPayload(payload);
-    MessageOutStream::Pointer messageOutStream(std::make_shared<MessageOutStream>(ioService_, transport_, cryptor_));
+    MessageOutStream::Pointer messageOutStream(std::make_shared<MessageOutStream>(ioContext_, transport_, cryptor_));
     messageOutStream->stream(message, std::move(sendPromise_));
 
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     EXPECT_CALL(sendPromiseHandlerMock_, onReject(_)).Times(0);
     EXPECT_CALL(sendPromiseHandlerMock_, onResolve());
     transportSendPromise->resolve();
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(MessageOutStream_MessageEncryptionFailed, MessageOutStreamUnitTest)
@@ -132,14 +132,14 @@ BOOST_FIXTURE_TEST_CASE(MessageOutStream_MessageEncryptionFailed, MessageOutStre
     Message::Pointer message(std::make_shared<Message>(ChannelId::VIDEO, EncryptionType::ENCRYPTED, MessageType::CONTROL));
     const common::Data payload(1000, 0x5E);
     message->insertPayload(payload);
-    MessageOutStream::Pointer messageOutStream(std::make_shared<MessageOutStream>(ioService_, transport_, cryptor_));
+    MessageOutStream::Pointer messageOutStream(std::make_shared<MessageOutStream>(ioContext_, transport_, cryptor_));
 
     EXPECT_CALL(cryptorMock_, encrypt(_, _)).WillOnce(ThrowSSLWriteException());
     EXPECT_CALL(sendPromiseHandlerMock_, onReject(error::Error(error::ErrorCode::SSL_WRITE, 32)));
     EXPECT_CALL(sendPromiseHandlerMock_, onResolve()).Times(0);
     messageOutStream->stream(message, std::move(sendPromise_));
 
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(MessageOutStream_SendError, MessageOutStreamUnitTest)
@@ -147,21 +147,21 @@ BOOST_FIXTURE_TEST_CASE(MessageOutStream_SendError, MessageOutStreamUnitTest)
     Message::Pointer message(std::make_shared<Message>(ChannelId::VIDEO, EncryptionType::PLAIN, MessageType::CONTROL));
     const common::Data payload(1000, 0x5E);
     message->insertPayload(payload);
-    MessageOutStream::Pointer messageOutStream(std::make_shared<MessageOutStream>(ioService_, transport_, cryptor_));
+    MessageOutStream::Pointer messageOutStream(std::make_shared<MessageOutStream>(ioContext_, transport_, cryptor_));
 
     transport::ITransport::SendPromise::Pointer transportSendPromise;
     EXPECT_CALL(transportMock_, send(_, _)).WillOnce(SaveArg<1>(&transportSendPromise));
     messageOutStream->stream(message, std::move(sendPromise_));
 
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     const error::Error e(error::ErrorCode::USB_TRANSFER, 513);
     EXPECT_CALL(sendPromiseHandlerMock_, onReject(e));
     EXPECT_CALL(sendPromiseHandlerMock_, onResolve()).Times(0);
 
     transportSendPromise->reject(e);
-    ioService_.run();
+    ioContext_.run();
 }
 
 BOOST_FIXTURE_TEST_CASE(MessageOutStream_SendSplittedMessage, MessageOutStreamUnitTest)
@@ -193,18 +193,18 @@ BOOST_FIXTURE_TEST_CASE(MessageOutStream_SendSplittedMessage, MessageOutStreamUn
     expectedData1.insert(expectedData1.end(), frame1Payload.begin(), frame1Payload.end());
     EXPECT_CALL(transportMock_, send(expectedData1, _)).WillOnce(SaveArg<1>(&transportSendPromise));
 
-    MessageOutStream::Pointer messageOutStream(std::make_shared<MessageOutStream>(ioService_, transport_, cryptor_));
+    MessageOutStream::Pointer messageOutStream(std::make_shared<MessageOutStream>(ioContext_, transport_, cryptor_));
     messageOutStream->stream(message, std::move(sendPromise_));
 
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     common::Data expectedData2(frame2HeaderData.begin(), frame2HeaderData.end());
     expectedData2.insert(expectedData2.end(), frame2SizeData.begin(), frame2SizeData.end());
     expectedData2.insert(expectedData2.end(), frame2Payload.begin(), frame2Payload.end());
     EXPECT_CALL(transportMock_, send(expectedData2, _)).WillOnce(SaveArg<1>(&transportSendPromise));
 
-    auto secondSendPromise = SendPromise::defer(ioService_);
+    auto secondSendPromise = SendPromise::defer(ioContext_);
     SendPromiseHandlerMock secondSendPromiseHandlerMock;
     secondSendPromise->then(std::bind(&SendPromiseHandlerMock::onResolve, &secondSendPromiseHandlerMock),
                            std::bind(&SendPromiseHandlerMock::onReject, &secondSendPromiseHandlerMock, std::placeholders::_1));
@@ -214,13 +214,13 @@ BOOST_FIXTURE_TEST_CASE(MessageOutStream_SendSplittedMessage, MessageOutStreamUn
     messageOutStream->stream(message, std::move(secondSendPromise));
 
     transportSendPromise->resolve();
-    ioService_.run();
-    ioService_.reset();
+    ioContext_.run();
+    ioContext_.reset();
 
     EXPECT_CALL(sendPromiseHandlerMock_, onReject(_)).Times(0);
     EXPECT_CALL(sendPromiseHandlerMock_, onResolve());
     transportSendPromise->resolve();
-    ioService_.run();
+    ioContext_.run();
 }
 
 }

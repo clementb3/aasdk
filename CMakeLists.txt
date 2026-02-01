@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5.1)
+cmake_minimum_required(VERSION 3.10)
 project(aasdk CXX)
 
 set(base_directory ${CMAKE_CURRENT_SOURCE_DIR})
@@ -13,11 +13,21 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${base_directory}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${base_directory}/bin)
 set(EXECUTABLE_OUTPUT_PATH ${base_directory}/bin)
 
-SET(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake_modules/")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_INIT} -fPIC -Wall -pedantic")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
-set(CMAKE_CXX_FLAGS_RELEASE "-g -O3")
+if(MSVC)
+    # Flags pour Visual Studio / MSVC
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_INIT} /W3 /EHsc")
+    set(CMAKE_CXX_FLAGS_DEBUG "/Zi /Od")
+    set(CMAKE_CXX_FLAGS_RELEASE "/O2")
+else()
+    # Flags pour GCC / Clang
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_INIT} -fPIC -Wall -pedantic")
+    set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
+    set(CMAKE_CXX_FLAGS_RELEASE "-g -O3")
+endif()
 
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)

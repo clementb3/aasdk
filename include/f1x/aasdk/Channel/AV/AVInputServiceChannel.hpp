@@ -35,7 +35,7 @@ namespace av
 class AVInputServiceChannel: public IAVInputServiceChannel, public ServiceChannel, public std::enable_shared_from_this<AVInputServiceChannel>
 {
 public:
-    AVInputServiceChannel(boost::asio::io_service::strand& strand, messenger::IMessenger::Pointer messenger);
+    AVInputServiceChannel(boost::asio::io_context::strand& strand, messenger::IMessenger::Pointer messenger);
 
     void receive(IAVInputServiceChannelEventHandler::Pointer eventHandler) override;
     void sendChannelOpenResponse(const proto::messages::ChannelOpenResponse& response, SendPromise::Pointer promise) override;

@@ -26,8 +26,8 @@ namespace aasdk
 namespace messenger
 {
 
-MessageInStream::MessageInStream(boost::asio::io_service& ioService, transport::ITransport::Pointer transport, ICryptor::Pointer cryptor)
-    : strand_(ioService)
+MessageInStream::MessageInStream(boost::asio::io_context& ioContext, transport::ITransport::Pointer transport, ICryptor::Pointer cryptor)
+    : strand_(ioContext)
     , transport_(std::move(transport))
     , cryptor_(std::move(cryptor))
 {
@@ -36,7 +36,7 @@ MessageInStream::MessageInStream(boost::asio::io_service& ioService, transport::
 
 void MessageInStream::startReceive(ReceivePromise::Pointer promise)
 {
-    strand_.dispatch([this, self = this->shared_from_this(), promise = std::move(promise)]() mutable {
+    boost::asio::dispatch(strand_, [ self = this->shared_from_this(), promise = std::move(promise)]) mutable {
         if(promise_ == nullptr)
         {
             promise_ = std::move(promise);

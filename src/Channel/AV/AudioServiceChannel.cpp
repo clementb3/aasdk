@@ -31,27 +31,27 @@ namespace channel
 namespace av
 {
 
-AudioServiceChannel::AudioServiceChannel(boost::asio::io_service::strand& strand, messenger::IMessenger::Pointer messenger, messenger::ChannelId channelId)
+AudioContextChannel::AudioContextChannel(boost::asio::io_context::strand& strand, messenger::IMessenger::Pointer messenger, messenger::ChannelId channelId)
     : ServiceChannel(strand, std::move(messenger), channelId)
 {
 
 }
 
-void AudioServiceChannel::receive(IAudioServiceChannelEventHandler::Pointer eventHandler)
+void AudioContextChannel::receive(IAudioContextChannelEventHandler::Pointer eventHandler)
 {
     auto receivePromise = messenger::ReceivePromise::defer(strand_);
-    receivePromise->then(std::bind(&AudioServiceChannel::messageHandler, this->shared_from_this(), std::placeholders::_1, eventHandler),
-                        std::bind(&IAudioServiceChannelEventHandler::onChannelError, eventHandler, std::placeholders::_1));
+    receivePromise->then(std::bind(&AudioContextChannel::messageHandler, this->shared_from_this(), std::placeholders::_1, eventHandler),
+                        std::bind(&IAudioContextChannelEventHandler::onChannelError, eventHandler, std::placeholders::_1));
 
     messenger_->enqueueReceive(channelId_, std::move(receivePromise));
 }
 
-messenger::ChannelId AudioServiceChannel::getId() const
+messenger::ChannelId AudioContextChannel::getId() const
 {
     return channelId_;
 }
 
-void AudioServiceChannel::sendChannelOpenResponse(const proto::messages::ChannelOpenResponse& response, SendPromise::Pointer promise)
+void AudioContextChannel::sendChannelOpenResponse(const proto::messages::ChannelOpenResponse& response, SendPromise::Pointer promise)
 {
     auto message(std::make_shared<messenger::Message>(channelId_, messenger::EncryptionType::ENCRYPTED, messenger::MessageType::CONTROL));
     message->insertPayload(messenger::MessageId(proto::ids::ControlMessage::CHANNEL_OPEN_RESPONSE).getData());
@@ -60,7 +60,7 @@ void AudioServiceChannel::sendChannelOpenResponse(const proto::messages::Channel
     this->send(std::move(message), std::move(promise));
 }
 
-void AudioServiceChannel::sendAVChannelSetupResponse(const proto::messages::AVChannelSetupResponse& response, SendPromise::Pointer promise)
+void AudioContextChannel::sendAVChannelSetupResponse(const proto::messages::AVChannelSetupResponse& response, SendPromise::Pointer promise)
 {
     auto message(std::make_shared<messenger::Message>(channelId_, messenger::EncryptionType::ENCRYPTED, messenger::MessageType::SPECIFIC));
     message->insertPayload(messenger::MessageId(proto::ids::AVChannelMessage::SETUP_RESPONSE).getData());
@@ -69,7 +69,7 @@ void AudioServiceChannel::sendAVChannelSetupResponse(const proto::messages::AVCh
     this->send(std::move(message), std::move(promise));
 }
 
-void AudioServiceChannel::sendAVMediaAckIndication(const proto::messages::AVMediaAckIndication& indication, SendPromise::Pointer promise)
+void AudioContextChannel::sendAVMediaAckIndication(const proto::messages::AVMediaAckIndication& indication, SendPromise::Pointer promise)
 {
     auto message(std::make_shared<messenger::Message>(channelId_, messenger::EncryptionType::ENCRYPTED, messenger::MessageType::SPECIFIC));
     message->insertPayload(messenger::MessageId(proto::ids::AVChannelMessage::AV_MEDIA_ACK_INDICATION).getData());
@@ -78,7 +78,7 @@ void AudioServiceChannel::sendAVMediaAckIndication(const proto::messages::AVMedi
     this->send(std::move(message), std::move(promise));
 }
 
-void AudioServiceChannel::messageHandler(messenger::Message::Pointer message, IAudioServiceChannelEventHandler::Pointer eventHandler)
+void AudioContextChannel::messageHandler(messenger::Message::Pointer message, IAudioContextChannelEventHandler::Pointer eventHandler)
 {
     messenger::MessageId messageId(message->getPayload());
     common::DataConstBuffer payload(message->getPayload(), messageId.getSizeOf());
@@ -104,13 +104,13 @@ void AudioServiceChannel::messageHandler(messenger::Message::Pointer message, IA
         this->handleChannelOpenRequest(payload, std::move(eventHandler));
         break;
     default:
-        AASDK_LOG(error) << "[AudioServiceChannel] message not handled: " << messageId.getId();
+        AASDK_LOG(error) << "[AudioContextChannel] message not handled: " << messageId.getId();
         this->receive(std::move(eventHandler));
         break;
     }
 }
 
-void AudioServiceChannel::handleAVChannelSetupRequest(const common::DataConstBuffer& payload, IAudioServiceChannelEventHandler::Pointer eventHandler)
+void AudioContextChannel::handleAVChannelSetupRequest(const common::DataConstBuffer& payload, IAudioContextChannelEventHandler::Pointer eventHandler)
 {
     proto::messages::AVChannelSetupRequest request;
     if(request.ParseFromArray(payload.cdata, payload.size))
@@ -123,7 +123,7 @@ void AudioServiceChannel::handleAVChannelSetupRequest(const common::DataConstBuf
     }
 }
 
-void AudioServiceChannel::handleStartIndication(const common::DataConstBuffer& payload, IAudioServiceChannelEventHandler::Pointer eventHandler)
+void AudioContextChannel::handleStartIndication(const common::DataConstBuffer& payload, IAudioContextChannelEventHandler::Pointer eventHandler)
 {
     proto::messages::AVChannelStartIndication indication;
     if(indication.ParseFromArray(payload.cdata, payload.size))
@@ -136,7 +136,7 @@ void AudioServiceChannel::handleStartIndication(const common::DataConstBuffer& p
     }
 }
 
-void AudioServiceChannel::handleStopIndication(const common::DataConstBuffer& payload, IAudioServiceChannelEventHandler::Pointer eventHandler)
+void AudioContextChannel::handleStopIndication(const common::DataConstBuffer& payload, IAudioContextChannelEventHandler::Pointer eventHandler)
 {
     proto::messages::AVChannelStopIndication indication;
     if(indication.ParseFromArray(payload.cdata, payload.size))
@@ -149,7 +149,7 @@ void AudioServiceChannel::handleStopIndication(const common::DataConstBuffer& pa
     }
 }
 
-void AudioServiceChannel::handleChannelOpenRequest(const common::DataConstBuffer& payload, IAudioServiceChannelEventHandler::Pointer eventHandler)
+void AudioContextChannel::handleChannelOpenRequest(const common::DataConstBuffer& payload, IAudioContextChannelEventHandler::Pointer eventHandler)
 {
     proto::messages::ChannelOpenRequest request;
     if(request.ParseFromArray(payload.cdata, payload.size))
@@ -162,7 +162,7 @@ void AudioServiceChannel::handleChannelOpenRequest(const common::DataConstBuffer
     }
 }
 
-void AudioServiceChannel::handleAVMediaWithTimestampIndication(const common::DataConstBuffer& payload, IAudioServiceChannelEventHandler::Pointer eventHandler)
+void AudioContextChannel::handleAVMediaWithTimestampIndication(const common::DataConstBuffer& payload, IAudioContextChannelEventHandler::Pointer eventHandler)
 {
     if(payload.size >= sizeof(messenger::Timestamp::ValueType))
     {

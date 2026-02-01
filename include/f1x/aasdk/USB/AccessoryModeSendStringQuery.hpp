@@ -32,7 +32,7 @@ namespace usb
 class AccessoryModeSendStringQuery: public AccessoryModeQuery, public std::enable_shared_from_this<AccessoryModeSendStringQuery>
 {
 public:
-    AccessoryModeSendStringQuery(boost::asio::io_service& ioService, IUSBWrapper& usbWrapper, IUSBEndpoint::Pointer usbEndpoint,
+    AccessoryModeSendStringQuery(boost::asio::io_context& ioContext, IUSBWrapper& usbWrapper, IUSBEndpoint::Pointer usbEndpoint,
                                  AccessoryModeSendStringType sendStringType, const std::string& queryValue);
     void start(Promise::Pointer promise) override;
 

@@ -33,7 +33,7 @@ namespace usb
 class ConnectedAccessoriesEnumerator: public IConnectedAccessoriesEnumerator, public std::enable_shared_from_this<ConnectedAccessoriesEnumerator>
 {
 public:
-    ConnectedAccessoriesEnumerator(IUSBWrapper& usbWrapper, boost::asio::io_service& ioService, IAccessoryModeQueryChainFactory& queryChainFactory);
+    ConnectedAccessoriesEnumerator(IUSBWrapper& usbWrapper, boost::asio::io_context& ioContext, IAccessoryModeQueryChainFactory& queryChainFactory);
 
     void enumerate(Promise::Pointer promise) override;
     void cancel() override;
@@ -45,7 +45,7 @@ private:
     void reset();
 
     IUSBWrapper& usbWrapper_;
-    boost::asio::io_service::strand strand_;
+    boost::asio::io_context::strand strand_;
     IAccessoryModeQueryChainFactory& queryChainFactory_;
     IAccessoryModeQueryChain::Pointer queryChain_;
     Promise::Pointer promise_;

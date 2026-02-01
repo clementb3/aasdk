@@ -26,21 +26,21 @@ namespace io
 {
 
 IOContextWrapper::IOContextWrapper()
-    : ioService_(nullptr)
+    : ioContext_(nullptr)
     , strand_(nullptr)
 {
 
 }
 
-IOContextWrapper::IOContextWrapper(boost::asio::io_service& ioService)
-    : ioService_(&ioService)
+IOContextWrapper::IOContextWrapper(boost::asio::io_context& ioContext)
+    : ioContext_(&ioContext)
     , strand_(nullptr)
 {
 
 }
 
-IOContextWrapper::IOContextWrapper(boost::asio::io_service::strand& strand)
-    : ioService_(nullptr)
+IOContextWrapper::IOContextWrapper(boost::asio::io_context::strand& strand)
+    : ioContext_(nullptr)
     , strand_(&strand)
 {
 
@@ -48,13 +48,13 @@ IOContextWrapper::IOContextWrapper(boost::asio::io_service::strand& strand)
 
 void IOContextWrapper::reset()
 {
-    ioService_ = nullptr;
+    ioContext_ = nullptr;
     strand_ = nullptr;
 }
 
 bool IOContextWrapper::isActive() const
 {
-    return ioService_ != nullptr || strand_ != nullptr;
+    return ioContext_ != nullptr || strand_ != nullptr;
 }
 
 }

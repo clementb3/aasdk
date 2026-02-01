@@ -33,7 +33,7 @@ namespace sensor
 class SensorServiceChannel: public ISensorServiceChannel, public ServiceChannel, public std::enable_shared_from_this<SensorServiceChannel>
 {
 public:
-    SensorServiceChannel(boost::asio::io_service::strand& strand, messenger::IMessenger::Pointer messenger);
+    SensorServiceChannel(boost::asio::io_context::strand& strand, messenger::IMessenger::Pointer messenger);
 
     void receive(ISensorServiceChannelEventHandler::Pointer eventHandler) override;
     messenger::ChannelId getId() const override;

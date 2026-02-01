@@ -16,7 +16,7 @@
 *  along with aasdk. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <f1x/aasdk/Channel/AV/SystemAudioServiceChannel.hpp>
+#include <f1x/aasdk/Channel/AV/MediaAudioServiceChannel.hpp>
 
 namespace f1x
 {
@@ -27,8 +27,8 @@ namespace channel
 namespace av
 {
 
-SystemAudioServiceChannel::SystemAudioServiceChannel(boost::asio::io_service::strand& strand, messenger::IMessenger::Pointer messenger)
-    : AudioServiceChannel(strand, std::move(messenger), messenger::ChannelId::SYSTEM_AUDIO)
+SystemAudioContextChannel::SystemAudioContextChannel(boost::asio::io_context::strand& strand, messenger::IMessenger::Pointer messenger)
+    : AudioContextChannel(strand, std::move(messenger), messenger::ChannelId::SYSTEM_AUDIO)
 {
 
 }

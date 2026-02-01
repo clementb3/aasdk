@@ -29,10 +29,10 @@ namespace channel
 namespace av
 {
 
-class MediaAudioServiceChannel: public AudioServiceChannel
+class MediaAudioContextChannel: public AudioContextChannel
 {
 public:
-    MediaAudioServiceChannel(boost::asio::io_service::strand& strand, messenger::IMessenger::Pointer messenger);
+    MediaAudioContextChannel(boost::asio::io_context::strand& strand, messenger::IMessenger::Pointer messenger);
 };
 
 }

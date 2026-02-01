@@ -27,9 +27,9 @@ namespace aasdk
 namespace usb
 {
 
-USBEndpoint::USBEndpoint(IUSBWrapper& usbWrapper, boost::asio::io_service& ioService, DeviceHandle handle, uint8_t endpointAddress)
+USBEndpoint::USBEndpoint(IUSBWrapper& usbWrapper, boost::asio::io_context& ioContext, DeviceHandle handle, uint8_t endpointAddress)
     : usbWrapper_(usbWrapper)
-    , strand_(ioService)
+    , strand_(ioContext)
     , handle_(std::move(handle))
     , endpointAddress_(endpointAddress)
 {
@@ -100,7 +100,7 @@ void USBEndpoint::bulkTransfer(common::DataBuffer buffer, uint32_t timeout, Prom
 
 void USBEndpoint::transfer(libusb_transfer *transfer, Promise::Pointer promise)
 {
-    strand_.dispatch([this, self = this->shared_from_this(), transfer, promise = std::move(promise)]() mutable {
+    boost::asio::dispatch(strand_,[ self = this->shared_from_this(), transfer, promise = std::move(promise)]() mutable {
         auto submitResult = usbWrapper_.submitTransfer(transfer);
 
         if(submitResult == 0)
@@ -128,7 +128,7 @@ uint8_t USBEndpoint::getAddress()
 
 void USBEndpoint::cancelTransfers()
 {
-    strand_.dispatch([this, self = this->shared_from_this()]() mutable {
+    boost::asio::dispatch(strand_, [ self = this->shared_from_this()]() mutable {
         for(const auto& transfer : transfers_)
         {
             usbWrapper_.cancelTransfer(transfer.first);
@@ -145,7 +145,7 @@ void USBEndpoint::transferHandler(libusb_transfer *transfer)
 {
     auto self = reinterpret_cast<USBEndpoint*>(transfer->user_data)->shared_from_this();
 
-    self->strand_.dispatch([self, transfer]() mutable {
+    boost::asio::dispatch(self->strand_,[self, transfer]() mutable {
         if(self->transfers_.count(transfer) == 0)
         {
             return;

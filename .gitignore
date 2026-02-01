@@ -1,4 +1,59 @@
-# Add any directories, files, or patterns you don't want to be tracked by version control
-lib/
-bin/
-CMakeLists.txt.user
+# ===============================
+# CMake & Build
+# ===============================
+/build/
+/out/
+
+# Fichiers générés par CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.cmake
+
+# ===============================
+# Binaries / exécutables
+# ===============================
+*.exe
+*.out
+*.app
+*.so
+*.dll
+*.dylib
+*.o
+*.obj
+*.a
+*.lib
+
+# ===============================
+# Logs & temporaires
+# ===============================
+*.log
+*.tmp
+*.swp
+*.swo
+*.DS_Store       # macOS
+Thumbs.db        # Windows
+
+# ===============================
+# Visual Studio 2022
+# ===============================
+.vs/
+
+# ===============================
+# IDE supplémentaires
+# ===============================
+.vscode/
+.idea/
+
+# ===============================
+# Boost / dépendances
+# ===============================
+/boost/
+
+# ===============================
+# Unit tests / coverage
+# ===============================
+*.gcda
+*.gcno
+coverage/

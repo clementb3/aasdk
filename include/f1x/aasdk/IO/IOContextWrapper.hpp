@@ -32,32 +32,32 @@ class IOContextWrapper
 {
 public:
     IOContextWrapper();
-    explicit IOContextWrapper(boost::asio::io_service& ioService);
-    explicit IOContextWrapper(boost::asio::io_service::strand& strand);
+    explicit IOContextWrapper(boost::asio::io_context& ioContext);
+    explicit IOContextWrapper(boost::asio::io_context::strand& strand);
 
     template<typename CompletionHandlerType>
     void post(CompletionHandlerType&& handler)
     {
-        if(ioService_ != nullptr)
+        if(ioContext_ != nullptr)
         {
-            ioService_->post(std::move(handler));
+            boost::asio::post(*ioContext_, std::forward<CompletionHandlerType>(handler));
         }
         else if(strand_ != nullptr)
         {
-            strand_->post(std::move(handler));
+            boost::asio::post(*strand_, std::forward<CompletionHandlerType>(handler));
         }
     }
 
     template<typename CompletionHandlerType>
     void dispatch(CompletionHandlerType&& handler)
     {
-        if(ioService_ != nullptr)
+        if(ioContext_ != nullptr)
         {
-            ioService_->dispatch(std::move(handler));
+            boost::asio::dispatch(*ioContext_, std::forward<CompletionHandlerType>(handler));
         }
         else if(strand_ != nullptr)
         {
-            strand_->dispatch(std::move(handler));
+            boost::asio::dispatch(*strand_, std::forward<CompletionHandlerType>(handler));
         }
     }
 
@@ -65,8 +65,8 @@ public:
     bool isActive() const;
 
 private:
-    boost::asio::io_service* ioService_;
-    boost::asio::io_service::strand* strand_;
+    boost::asio::io_context* ioContext_;
+    boost::asio::io_context::strand* strand_;
 };
 
 }
