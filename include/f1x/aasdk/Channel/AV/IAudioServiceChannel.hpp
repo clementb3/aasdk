@@ -6,7 +6,7 @@
 #include <aasdk_proto/ChannelOpenResponseMessage.pb.h>
 #include <f1x/aasdk/Messenger/ChannelId.hpp>
 #include <f1x/aasdk/Channel/Promise.hpp>
-#include <f1x/aasdk/Channel/AV/IAudioContextChannelEventHandler.hpp>
+#include <f1x/aasdk/Channel/AV/IAudioServiceChannelEventHandler.hpp>
 
 namespace f1x
 {
@@ -25,7 +25,7 @@ namespace f1x
                     IAudioContextChannel() = default;
                     virtual ~IAudioContextChannel() = default;
 
-                    virtual void receive(IAudioContextChannelEventHandler::Pointer eventHandler) = 0;
+                    virtual void receive(IAudioServiceChannelEventHandler::Pointer eventHandler) = 0;
                     virtual void sendChannelOpenResponse(const proto::messages::ChannelOpenResponse& response,
                         SendPromise::Pointer promise) = 0;
                     virtual void sendAVChannelSetupResponse(const proto::messages::AVChannelSetupResponse& response,

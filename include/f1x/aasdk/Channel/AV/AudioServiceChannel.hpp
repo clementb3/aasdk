@@ -36,7 +36,7 @@ namespace f1x
                 public:
                     AudioContextChannel(boost::asio::io_context::strand& strand, messenger::IMessenger::Pointer messenger, messenger::ChannelId channelId);
 
-                    void receive(IAudioContextChannelEventHandler::Pointer eventHandler) override;
+                    void receive(IAudioServiceChannelEventHandler::Pointer eventHandler) override;
                     void sendChannelOpenResponse(const proto::messages::ChannelOpenResponse& response, SendPromise::Pointer promise) override;
                     void sendAVChannelSetupResponse(const proto::messages::AVChannelSetupResponse& response, SendPromise::Pointer promise) override;
                     void sendAVMediaAckIndication(const proto::messages::AVMediaAckIndication& indication, SendPromise::Pointer promise) override;
@@ -44,12 +44,12 @@ namespace f1x
 
                 private:
                     using std::enable_shared_from_this<AudioContextChannel>::shared_from_this;
-                    void messageHandler(messenger::Message::Pointer message, IAudioContextChannelEventHandler::Pointer eventHandler);
-                    void handleAVChannelSetupRequest(const common::DataConstBuffer& payload, IAudioContextChannelEventHandler::Pointer eventHandler);
-                    void handleStartIndication(const common::DataConstBuffer& payload, IAudioContextChannelEventHandler::Pointer eventHandler);
-                    void handleStopIndication(const common::DataConstBuffer& payload, IAudioContextChannelEventHandler::Pointer eventHandler);
-                    void handleChannelOpenRequest(const common::DataConstBuffer& payload, IAudioContextChannelEventHandler::Pointer eventHandler);
-                    void handleAVMediaWithTimestampIndication(const common::DataConstBuffer& payload, IAudioContextChannelEventHandler::Pointer eventHandler);
+                    void messageHandler(messenger::Message::Pointer message, IAudioServiceChannelEventHandler::Pointer eventHandler);
+                    void handleAVChannelSetupRequest(const common::DataConstBuffer& payload, IAudioServiceChannelEventHandler::Pointer eventHandler);
+                    void handleStartIndication(const common::DataConstBuffer& payload, IAudioServiceChannelEventHandler::Pointer eventHandler);
+                    void handleStopIndication(const common::DataConstBuffer& payload, IAudioServiceChannelEventHandler::Pointer eventHandler);
+                    void handleChannelOpenRequest(const common::DataConstBuffer& payload, IAudioServiceChannelEventHandler::Pointer eventHandler);
+                    void handleAVMediaWithTimestampIndication(const common::DataConstBuffer& payload, IAudioServiceChannelEventHandler::Pointer eventHandler);
                 };
 
             }
